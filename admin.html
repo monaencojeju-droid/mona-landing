@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mona&Co. | 관리자 대시보드</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            navy: '#0A1128',
+                            navyLight: '#14213D',
+                            navyBorder: '#1A2A4D',
+                            gold: '#D4AF37',
+                            goldHover: '#C5A059',
+                            bg: '#F3F4F6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans KR"', 'sans-serif'],
+                        serif: ['"Noto Serif KR"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #F8F9FA; word-break: keep-all; }
+        .status-badge { transition: all 0.2s ease; }
+    </style>
+</head>
+<body class="font-sans antialiased text-gray-800">
+
+    <!-- 로그인 오버레이 (비밀번호 화면) -->
+    <div id="loginOverlay" class="fixed inset-0 z-[100] bg-brand-navy flex items-center justify-center transition-opacity duration-300">
+        <div class="bg-brand-navyLight p-10 rounded-3xl border border-brand-gold/30 shadow-2xl max-w-sm w-full text-center mx-4">
+            <div class="w-16 h-16 rounded-full border-2 border-brand-gold flex items-center justify-center text-brand-gold font-serif font-bold text-3xl mx-auto mb-6">M</div>
+            <h2 class="text-2xl font-serif font-bold text-brand-gold mb-2">관리자 로그인</h2>
+            <p class="text-gray-400 text-sm mb-8">안전한 접속을 위해 비밀번호를 입력해주세요.</p>
+            
+            <form onsubmit="handleLogin(event)">
+                <input type="password" id="adminPassword" placeholder="비밀번호 입력" class="w-full bg-brand-navy border border-brand-navyBorder rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold transition-colors mb-4 text-center tracking-[0.5em] text-lg">
+                <button type="submit" class="w-full bg-brand-gold text-brand-navy font-bold py-3.5 rounded-xl hover:bg-white transition-colors shadow-[0_5px_15px_rgba(212,175,55,0.3)]">접속하기</button>
+            </form>
+            <p id="loginError" class="text-red-400 text-sm mt-4 hidden">비밀번호가 일치하지 않습니다.</p>
+        </div>
+    </div>
+
+    <!-- 대시보드 컨텐츠 (로그인 후 표시) -->
+    <div id="dashboardContent" class="hidden">
+        <!-- Navbar -->
+        <nav class="bg-brand-navy text-white shadow-lg sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full border-2 border-brand-gold flex items-center justify-center text-brand-gold font-serif font-bold text-sm">M</div>
+                        <span class="font-serif text-xl font-bold tracking-widest">Mona&Co. Admin</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="text-sm text-gray-300 hidden md:block">원장님, 환영합니다.</span>
+                        <button onclick="handleLogout()" class="bg-brand-navyBorder hover:bg-brand-navyLight px-4 py-2 rounded-lg text-sm font-medium border border-brand-navyBorder transition-colors">로그아웃</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Header & Stats -->
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-brand-navy mb-6 font-serif">예약 문의 관리</h1>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 border-l-4 border-l-red-400">
+                        <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500 text-2xl">🚨</div>
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">신규 문의 (상담 대기)</p>
+                            <p id="stats-new" class="text-3xl font-bold text-brand-navy">0건</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 border-l-4 border-l-blue-400">
+                        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 text-2xl">📞</div>
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">통화 완료 / 조율 중</p>
+                            <p id="stats-contacted" class="text-3xl font-bold text-brand-navy">0건</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 border-l-4 border-l-brand-gold">
+                        <div class="w-12 h-12 rounded-full bg-yellow-50 flex items-center justify-center text-brand-gold text-2xl">✅</div>
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">예약 확정</p>
+                            <p id="stats-confirmed" class="text-3xl font-bold text-brand-navy">0건</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table Section -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-6 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h2 class="text-xl font-bold text-brand-navy">실시간 문의 목록</h2>
+                    <div class="flex gap-2">
+                        <!-- 빠른 검색 기능 추가 -->
+                        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="이름 또는 연락처 검색..." class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-brand-navy focus:ring-1 focus:ring-brand-navy w-full md:w-64">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 text-sm border-b border-gray-200">
+                                <th class="py-4 px-6 font-medium whitespace-nowrap">접수 일시</th>
+                                <th class="py-4 px-6 font-medium whitespace-nowrap">고객명</th>
+                                <th class="py-4 px-6 font-medium whitespace-nowrap">연락처</th>
+                                <th class="py-4 px-6 font-medium whitespace-nowrap">예약 상품</th>
+                                <th class="py-4 px-6 font-medium w-1/3">고객 메모</th>
+                                <th class="py-4 px-6 font-medium text-center whitespace-nowrap">진행 상태 (클릭하여 변경)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-gray-100">
+                            <tr><td colspan="6" class="text-center py-10 text-gray-400">데이터를 불러오는 중입니다...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // ==========================================
+        // 1. 보안 및 로그인 관리 (Session Storage 기반)
+        // ==========================================
+        const ADMIN_PASSWORD = "mona"; // ← ★여기에 원하시는 비밀번호를 설정하세요 (현재 'mona')
+        
+        const loginOverlay = document.getElementById('loginOverlay');
+        const dashboardContent = document.getElementById('dashboardContent');
+        const loginError = document.getElementById('loginError');
+
+        function checkAuth() {
+            // 브라우저 탭이 열려있는 동안만 로그인 유지 (sessionStorage)
+            if(sessionStorage.getItem('isAdmin') === 'true') {
+                loginOverlay.style.display = 'none';
+                dashboardContent.classList.remove('hidden');
+                fetchReservations(); // 로그인 성공 시 데이터 로드
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const pwd = document.getElementById('adminPassword').value;
+            
+            if(pwd === ADMIN_PASSWORD) {
+                sessionStorage.setItem('isAdmin', 'true');
+                loginError.classList.add('hidden');
+                document.getElementById('adminPassword').value = '';
+                checkAuth();
+            } else {
+                loginError.classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            sessionStorage.removeItem('isAdmin');
+            dashboardContent.classList.add('hidden');
+            loginOverlay.style.display = 'flex'; // 로그인 화면 다시 표시
+            document.getElementById('tableBody').innerHTML = '<tr><td colspan="6" class="text-center py-10 text-gray-400">데이터를 다시 불러오는 중입니다...</td></tr>';
+        }
+
+
+        // ==========================================
+        // 2. Supabase 데이터 연동 및 테이블 렌더링
+        // ==========================================
+        const supabaseUrl = 'https://wskzhuxlzegtcdnszjip.supabase.co';
+        const supabaseKey = 'sb_publishable_8tTDYBuqstQ2wDX7kNBpew_4hyIABcQ';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        const tableBody = document.getElementById('tableBody');
+        const statsNew = document.getElementById('stats-new');
+        const statsContacted = document.getElementById('stats-contacted');
+        const statsConfirmed = document.getElementById('stats-confirmed');
+        
+        let allReservations = []; // 검색 필터링을 위해 전체 데이터를 메모리에 저장
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const today = new Date();
+            const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+            
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            
+            if (isToday) return `오늘 ` + hours + `:` + minutes;
+            
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return month + `/` + day + ` ` + hours + `:` + minutes;
+        }
+
+        async function fetchReservations() {
+            const { data, error } = await supabaseClient
+                .from('reservations')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching:', error);
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-red-400">데이터를 불러오는 중 오류가 발생했습니다.<br>Supabase 권한(RLS Policy) 설정을 확인해주세요.</td></tr>`;
+                return;
+            }
+
+            allReservations = data;
+            renderTable(data);
+        }
+
+        function renderTable(data) {
+            let pendingCount = 0;
+            let contactedCount = 0;
+            let confirmedCount = 0;
+
+            if(!data || data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-400">아직 등록된 예약 문의가 없습니다.</td></tr>`;
+            } else {
+                tableBody.innerHTML = '';
+            }
+
+            data.forEach(row => {
+                if (row.status === 'pending') pendingCount++;
+                if (row.status === 'contacted') contactedCount++;
+                if (row.status === 'confirmed') confirmedCount++;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50 transition-colors border-b border-gray-100';
+                
+                let badgeClass = row.product === '탈모관리' ? 'bg-brand-navy/10 text-brand-navy' : 'bg-brand-gold/20 text-brand-goldHover';
+                
+                let selectClass = '';
+                if (row.status === 'pending') selectClass = 'bg-red-100 text-red-700';
+                if (row.status === 'contacted') {
+                    selectClass = 'bg-blue-100 text-blue-700';
+                    tr.classList.add('bg-gray-50/50');
+                }
+                if (row.status === 'confirmed') {
+                    selectClass = 'bg-gray-100 text-brand-gold';
+                    tr.classList.add('opacity-75');
+                }
+
+                tr.innerHTML = `
+                    <td class="py-4 px-6 text-sm text-gray-600">` + formatDate(row.created_at) + `</td>
+                    <td class="py-4 px-6 font-bold text-brand-navy">` + (row.name || '-') + `</td>
+                    <td class="py-4 px-6 text-sm text-gray-600">` + (row.phone || '-') + `</td>
+                    <td class="py-4 px-6">
+                        <span class="` + badgeClass + ` px-3 py-1 rounded-full text-xs font-bold">` + (row.product || '-') + `</span>
+                    </td>
+                    <td class="py-4 px-6 text-sm text-gray-500 truncate max-w-[200px]" title="` + (row.memo || '없음') + `">
+                        ` + (row.memo || '<span class="italic text-gray-300">메모 없음</span>') + `
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                        <select onchange="updateStatusColor(this, ` + row.id + `)" class="status-badge border-none font-bold text-xs rounded-full px-4 py-1.5 focus:outline-none cursor-pointer appearance-none text-center w-28 ` + selectClass + `">
+                            <option value="pending" ` + (row.status === 'pending' ? 'selected' : '') + `>🚨 상담 대기</option>
+                            <option value="contacted" ` + (row.status === 'contacted' ? 'selected' : '') + `>📞 연락 완료</option>
+                            <option value="confirmed" ` + (row.status === 'confirmed' ? 'selected' : '') + `>✅ 예약 확정</option>
+                        </select>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // 화면 상단 숫자 요약 업데이트
+            if(statsNew) statsNew.innerText = pendingCount + '건';
+            if(statsContacted) statsContacted.innerText = contactedCount + '건';
+            if(statsConfirmed) statsConfirmed.innerText = confirmedCount + '건';
+        }
+
+        async function updateStatusColor(selectElement, id) {
+            const val = selectElement.value;
+            // 로컬 화면 UI 색상 변경
+            selectElement.classList.remove('bg-red-100', 'text-red-700', 'bg-blue-100', 'text-blue-700', 'bg-gray-100', 'text-brand-gold');
+            if (val === 'pending') selectElement.classList.add('bg-red-100', 'text-red-700');
+            else if (val === 'contacted') selectElement.classList.add('bg-blue-100', 'text-blue-700');
+            else if (val === 'confirmed') selectElement.classList.add('bg-gray-100', 'text-brand-gold');
+            
+            // Supabase 데이터베이스 수정 반영
+            const { error } = await supabaseClient
+                .from('reservations')
+                .update({ status: val })
+                .eq('id', id);
+
+            if (error) {
+                alert('상태 변경에 실패했습니다. (권한 설정이 필요할 수 있습니다)');
+                console.error(error);
+                return;
+            }
+            
+            // 성공 시 전체 데이터 재조회 (상단 카운트 갱신을 위해)
+            fetchReservations();
+        }
+
+        // ==========================================
+        // 3. 편의 기능 (검색)
+        // ==========================================
+        function filterTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allReservations.filter(row => 
+                (row.name && row.name.toLowerCase().includes(query)) || 
+                (row.phone && row.phone.includes(query))
+            );
+            renderTable(filtered); // 필터링된 데이터만 화면에 다시 그림
+        }
+
+        // 브라우저 탭을 열자마자 로그인 여부 확인
+        document.addEventListener('DOMContentLoaded', checkAuth);
+
+    </script>
+</body>
+</html>
