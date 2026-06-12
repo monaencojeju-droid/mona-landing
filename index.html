@@ -605,6 +605,17 @@
                 console.error('Error inserting data:', error);
                 alert("서버 오류가 발생했습니다. 잠시 후 다시 시도해 주시거나 전화로 문의 부탁드립니다.");
             } else {
+                // 텔레그램 실시간 알림 전송 (비동기)
+                const tgToken = '8602034620:AAGJHoDm5ZAaPIlcCqA8jGfBi93zPcxdg4k';
+                const tgChatId = '6318906007';
+                const tgMsg = `🚨 [Mona&Co. 신규 문의]\n\n👤 고객명: ${name}\n📞 연락처: ${phone}\n🛍 상품: ${product}\n📝 메모: ${memo || '없음'}`;
+                
+                fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: tgChatId, text: tgMsg })
+                }).catch(err => console.error('TG err:', err));
+
                 alert("최대한 빠르게 확인 후 연락드릴게요.\n조금만 기다려주세요!");
                 // 예약 완료(Lead) 픽셀 전송
                 if (typeof fbq === 'function') {
